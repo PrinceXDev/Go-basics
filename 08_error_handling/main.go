@@ -33,7 +33,7 @@ import (
 //   errors.New("message")         -> simple static error
 //   fmt.Errorf("template %s", x)  -> formatted error message
 
-// Sentinel error: a predeclared, reusable error value you can check
+// Define specific, reusable error value you can check
 // identity against later. Common idiom for "known" error conditions.
 var ErrInsufficientFunds = errors.New("insufficient funds")
 

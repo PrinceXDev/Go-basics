@@ -85,4 +85,65 @@ func main() {
 	}
 	wg2.Wait()
 	fmt.Println("All workers finished")
+
+	// ---------- ANONYMOUS GOROUTINES ----------
+	// You don't need a named function — `go func() { ... }()` is very
+	// common for small, one-off concurrent tasks. Same loop-variable rule
+	// applies: pass loop values as arguments if the closure uses them.
+	var wg3 sync.WaitGroup
+	for i := 1; i <= 3; i++ {
+		wg3.Add(1)
+		go func(id int) {
+			defer wg3.Done()
+			fmt.Printf("anonymous goroutine %d running\n", id)
+		}(i)
+	}
+	wg3.Wait()
+
+	// ---------- SPAWNING FROM A HELPER FUNCTION ----------
+	// Real programs often hide goroutine + WaitGroup wiring inside a
+	// function so main() stays readable. The helper owns the WaitGroup;
+	// callers just call the function and block until all work is done.
+	greetAll([]string{"Dana", "Eli", "Frank"})
+
+	// ---------- SIMULATED PARALLEL I/O ----------
+	// Goroutines shine when tasks spend time waiting (network, disk, APIs).
+	// These "downloads" sleep for different durations but run concurrently,
+	// so total time is roughly the LONGEST task, not the sum of all tasks.
+	urls := []string{"api/users", "api/orders", "api/products"}
+	downloadAll(urls)
+}
+
+// greetAll launches one goroutine per name and waits for all to finish.
+func greetAll(names []string) {
+	var wg sync.WaitGroup
+	for _, name := range names {
+		wg.Add(1)
+		go func(n string) {
+			defer wg.Done()
+			fmt.Println("Greeting", n)
+		}(name)
+	}
+	wg.Wait()
+	fmt.Println("All greetings sent")
+}
+
+// downloadAll simulates concurrent HTTP fetches. Each goroutine "works"
+// for a different amount of time, then prints — notice output order is
+// not guaranteed and total elapsed time is less than doing them serially.
+func downloadAll(urls []string) {
+	var wg sync.WaitGroup
+	start := time.Now()
+
+	for i, url := range urls {
+		wg.Add(1)
+		go func(u string, delayMs int) {
+			defer wg.Done()
+			time.Sleep(time.Duration(delayMs) * time.Millisecond)
+			fmt.Printf("downloaded %s (%dms simulated)\n", u, delayMs)
+		}(url, (i+1)*20)
+	}
+
+	wg.Wait()
+	fmt.Printf("All downloads finished in %v\n", time.Since(start))
 }

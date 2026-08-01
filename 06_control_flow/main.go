@@ -156,4 +156,21 @@ func main() {
 	fmt.Println("shares", shares)
 	fmt.Println("length of shares", len(shares))
 	fmt.Println("Capacity of shares", cap(shares))
+
+	todos := []string{"learn go", "learn aws", "learn rag"}
+	more := []string{"learn python", "learn js"}
+
+	todos = append(todos, more...)
+	fmt.Println("Todos", todos)
+
+	total := 0
+	views := make([]int, 0, 5)
+	views = append(views, 10, 20, 30, 40, 50)
+
+	for i, v := range views {
+		fmt.Println(i, v)
+		total = total + v
+	}
+
+	fmt.Println("sum of the items", total)
 }
