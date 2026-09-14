@@ -1,29 +1,29 @@
 package main
 
-// ============================================================================
-// CONCEPT: Control flow — if/else, for (Go's ONLY loop), and switch
-//
-// PART A — if / else
-// Mechanically similar to JS, but two Go-specific rules matter:
-//   1. No parentheses required around the condition: `if x > 5 {` not
-//      `if (x > 5) {`. Braces `{}` are MANDATORY even for one-line bodies
-//      (unlike JS, which allows `if (x) doThing();` with no braces).
-//   2. Go allows an "init statement" before the condition, scoped only to
-//      the if/else chain — see the example below. This is a common Go
-//      idiom, especially paired with functions that return (value, error).
-//
-// PART B — for
-// Go has exactly ONE looping keyword: `for`. There is no `while`, no
-// `do-while`, no `foreach` keyword. `for` covers all of them by varying
-// what you put in the parentheses-less header.
-//
-// PART C — switch
-// Similar purpose to JS switch, but with two big differences:
-//   1. No `break` needed — Go does NOT fall through to the next case by
-//      default (JS does, which is why JS needs `break` everywhere).
-//   2. A `switch` with no condition at all acts like a clean if/else-if
-//      chain — very idiomatic Go.
-// ============================================================================
+/* ============================================================================
+CONCEPT: Control flow — if/else, for (Go's ONLY loop), and switch
+
+PART A — if / else
+Mechanically similar to JS, but two Go-specific rules matter:
+  1. No parentheses required around the condition: `if x > 5 {` not
+     `if (x > 5) {`. Braces `{}` are MANDATORY even for one-line bodies
+     (unlike JS, which allows `if (x) doThing();` with no braces).
+  2. Go allows an "init statement" before the condition, scoped only to
+     the if/else chain — see the example below. This is a common Go
+     idiom, especially paired with functions that return (value, error).
+
+PART B — for
+Go has exactly ONE looping keyword: `for`. There is no `while`, no
+`do-while`, no `foreach` keyword. `for` covers all of them by varying
+what you put in the parentheses-less header.
+
+PART C — switch
+Similar purpose to JS switch, but with two big differences:
+  1. No `break` needed — Go does NOT fall through to the next case by
+     default (JS does, which is why JS needs `break` everywhere).
+  2. A `switch` with no condition at all acts like a clean if/else-if
+     chain — very idiomatic Go.
+============================================================================ */
 
 import "fmt"
 
@@ -37,6 +37,14 @@ func main() {
 		fmt.Println("Teenager")
 	} else {
 		fmt.Println("Child")
+	}
+
+	if money := 100000; money > 1500000 {
+		fmt.Println("Rich")
+	} else if money < 500000 {
+		fmt.Println("Poor")
+	} else {
+		fmt.Println("leave in life of death")
 	}
 
 	// Go-specific: an init statement before the condition, using `;` to
