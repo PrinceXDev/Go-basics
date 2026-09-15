@@ -110,4 +110,8 @@ func main() {
 	}
 	wg2.Wait()
 	fmt.Println("Safe counter (always exactly 1000):", safeCounter)
+
+	/* WaitGroup → "Are you finished?"
+
+	   Mutex     → "Only one person touch this data at a time." */
 }
