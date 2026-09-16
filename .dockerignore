@@ -1,0 +1,45 @@
+# Everything here is EXCLUDED from the build context Docker uploads to the
+# daemon. A smaller context means faster builds and — more importantly — no
+# secrets accidentally baked into an image layer.
+#
+# Note: .dockerignore lives at the ROOT of the build context, not next to
+# the Dockerfile. Since we build from the repo root, it belongs here.
+
+# VCS
+.git
+.gitignore
+.github
+.gitlab-ci.yml
+
+# Secrets — the whole reason this file matters
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# Local databases created by lessons 36-38
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Build output
+/bin
+/out
+*.exe
+*.test
+*.out
+coverage.*
+
+# Editor / OS noise
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Docs don't belong in a build context
+*.md
+!README.md
+docs/

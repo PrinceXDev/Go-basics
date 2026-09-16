@@ -1,0 +1,102 @@
+# golangci-lint configuration — see 45_race_detector_and_linting/README.md
+#
+# Install:  go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+# Run:      golangci-lint run ./...
+# Autofix:  golangci-lint run --fix ./...
+#
+# This is a deliberately MODERATE config: strict enough to catch real bugs,
+# relaxed enough that it doesn't fight you on a learning repo. Comments
+# explain what each linter is for so you can decide what to keep in your own
+# projects.
+
+version: "2"
+
+run:
+  timeout: 3m
+  # Lint test files too — test code is code.
+  tests: true
+
+linters:
+  # Start from nothing and opt in explicitly, so an upgrade of
+  # golangci-lint never silently adds 40 new complaints to your CI.
+  default: none
+
+  enable:
+    # ---- the non-negotiable four ----
+    - errcheck # unchecked error returns. THE most valuable Go linter.
+    - govet # everything `go vet` does, including printf verb checks
+    - staticcheck # ~150 correctness + simplification checks (absorbed gosimple + stylecheck in v2)
+    - ineffassign # values assigned but never used
+
+    # ---- correctness ----
+    - bodyclose # an unclosed resp.Body leaks a connection (lesson 28)
+    - rowserrcheck # a missing rows.Err() silently truncates results (lesson 36)
+    - sqlclosecheck # an unclosed *sql.Rows deadlocks the pool
+    - nilerr # `if err != nil { return nil }` — swallowing an error
+    - errorlint # %v instead of %w; == instead of errors.Is (lesson 35)
+    - contextcheck # a function that should take a ctx but doesn't
+    - noctx # an HTTP request sent without a context
+
+    # ---- readability / maintenance ----
+    - unused # unused private functions, types, fields
+    - misspell # common English typos in comments and strings
+    - unconvert # redundant type conversions
+    - wastedassign
+    - usestdlibvars # http.MethodGet instead of "GET"
+
+    # ---- security ----
+    - gosec # hardcoded credentials, weak crypto, unsafe file permissions
+
+  settings:
+    errcheck:
+      # Deferred Close() on a read-only resource is the standard exception.
+      exclude-functions:
+        - (io.Closer).Close
+        - (*database/sql.Rows).Close
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # struct field ordering for padding — noisy, rarely worth it
+
+    gosec:
+      excludes:
+        - G104 # duplicate of errcheck
+        - G404 # math/rand is fine when it isn't security-sensitive
+
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # don't require a package comment on every package
+        - -ST1003 # naming conventions — too opinionated for a learning repo
+
+  exclusions:
+    # Presets for the noise everyone silences.
+    presets:
+      - comments
+      - std-error-handling
+
+    rules:
+      # Test files legitimately do things production code shouldn't.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+
+      # These lessons deliberately contain "bad" code to demonstrate it.
+      - path: 45_race_detector_and_linting/
+        linters:
+          - gosec
+          - staticcheck
+
+formatters:
+  enable:
+    - gofmt
+    - goimports # gofmt + automatic import grouping/removal
+
+  settings:
+    goimports:
+      # Your own module's imports go in a third group, after stdlib and
+      # third-party. Matches what most Go teams do.
+      local-prefixes:
+        - example.com/go-basics

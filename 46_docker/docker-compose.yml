@@ -1,0 +1,58 @@
+# Local development stack: the app plus a real Postgres.
+#
+# Run from the REPOSITORY ROOT:
+#   docker compose -f 46_docker/docker-compose.yml up --build
+#   docker compose -f 46_docker/docker-compose.yml down -v
+#
+# This is for DEVELOPMENT. In production the database is a managed service,
+# and the app is deployed by your orchestrator, not compose.
+
+services:
+  api:
+    build:
+      # Context is the repo root — go.mod must be visible to the build.
+      context: ..
+      dockerfile: 46_docker/Dockerfile
+      args:
+        VERSION: dev
+        COMMIT: local
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      APP_ENV: dev
+      APP_LOG_LEVEL: debug
+      # Note the host is the SERVICE NAME `db`, not localhost. Compose gives
+      # each service a DNS name on the shared network; "localhost" inside
+      # the api container is the api container itself.
+      APP_DB_DSN: postgres://app:devpassword@db:5432/app?sslmode=disable
+    depends_on:
+      db:
+        # Wait for the database to be HEALTHY, not merely started. Plain
+        # `depends_on: [db]` only waits for the container to exist, so your
+        # app races Postgres's startup and crash-loops.
+        condition: service_healthy
+    restart: unless-stopped
+    # Give the app time to drain on `compose down` (lesson 42).
+    stop_grace_period: 30s
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: devpassword # fine for local dev ONLY
+      POSTGRES_DB: app
+    ports:
+      # Exposed so you can connect with psql/TablePlus from the host.
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  pgdata:
