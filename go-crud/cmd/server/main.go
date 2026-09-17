@@ -13,6 +13,44 @@ import (
 	"go-crud/internal/user"
 )
 
+/*
+┌─────────────────────────────────────────────────────────────────┐
+│  $ go run ./cmd/server                                          │
+└─────────────────────────────────────────────────────────────────┘
+        │
+        ▼
+1. config.Load()
+        │  reads APP_PORT, DATABASE_URL from env
+        ▼
+2. database.Connect(dsn)
+        │  opens a connection pool, Ping()s it
+        │  ❌ fails here -> log.Fatalf, process exits immediately
+        ▼
+3. database.Migrate(db, "migrations")   <-- the function we just dissected
+        │
+        │   ┌───────────────────────────────────────────┐
+        │   │ a) ensure schema_migrations table exists  │
+        │   │ b) read which versions are already applied│
+        │   │ c) glob + sort migrations/*.sql           │
+        │   │ d) for each NOT-yet-applied file:         │
+        │   │      BEGIN -> run SQL -> record -> COMMIT │
+        │   └───────────────────────────────────────────┘
+        │
+        │  after this line: your Postgres database is
+        │  GUARANTEED to have users/products/orders/order_items
+        │  tables, no matter how empty it was a second ago
+        ▼
+4. build user/product/order repositories, services, handlers
+        │  (these all now safely assume the tables exist)
+        ▼
+5. router.New(...)  -- wire routes onto the mux
+        ▼
+6. srv.ListenAndServe()
+        │  blocks here forever, handling requests
+        ▼
+(server is now live on :8080)
+*/
+
 func main() {
 	cfg := config.Load()
 
@@ -22,6 +60,10 @@ func main() {
 	}
 	defer db.Close()
 
+	/* First ever run against a fresh DB → applied = 4.
+	Restart the exact same server a second later with no new .sql files → applied = 0,
+	because everything's already on the clipboard.
+	That's the payoff: idempotent — safe to run any number of times, always converges to the same end state. */
 	applied, err := database.Migrate(db, "migrations")
 	if err != nil {
 		log.Fatalf("migrate: %v", err)
