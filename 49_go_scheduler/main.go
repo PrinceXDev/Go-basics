@@ -31,6 +31,45 @@ package main
 // why real workloads almost always have channel ops or I/O sprinkled in.
 // ============================================================================
 
+/*     Go Scheduler
+            │
+ ┌──────────┼──────────┐
+ ↓          ↓          ↓
+P0         P1         P2
+ │          │          │
+M0         M1         M2
+ │          │          │
+G1         G7         G4
+G2         G8         G5
+G3                    G6
+
+
+==================================
+main()
+ │
+ ├── start taskA
+ ├── start taskB
+ ├── start taskC
+ │
+ └── main finishes ❌
+       ↓
+   program exits
+====================================
+with WaitGroup
+====================================
+main()
+ │
+ ├── taskA ──→ Done()
+ ├── taskB ──→ Done()
+ ├── taskC ──→ Done()
+ │
+ └── Wait() ← waits here
+       ↓
+ All tasks completed
+       ↓
+ program exits
+*/
+
 import (
 	"fmt"
 	"runtime"
