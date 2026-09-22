@@ -1,0 +1,16 @@
+# buf replaces protoc: it compiles .proto files with a built-in, pure-Go
+# compiler, lints them, and (the killer feature) detects BREAKING CHANGES
+# against your main branch in CI.
+#
+#   buf lint                          style + naming rules
+#   buf breaking --against '.git#branch=main'
+#   buf generate                      writes the Go
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

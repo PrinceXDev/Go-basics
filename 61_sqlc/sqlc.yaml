@@ -1,0 +1,52 @@
+# ============================================================================
+# sqlc.yaml -- the whole configuration surface of sqlc.
+#
+# Run from this folder:  sqlc generate
+# Check without writing: sqlc vet / sqlc diff   (good CI steps)
+#
+# Engine here is sqlite so the lesson runs with zero setup. The postgres
+# version of this file is in README.md -- only three lines differ.
+# ============================================================================
+version: "2"
+
+sql:
+  - engine: "sqlite"
+    # In a real project point this at your migrations folder instead:
+    #   schema: "../migrations"
+    # sqlc replays the up-migrations to derive the schema, so the generated
+    # code and the deployed database can never drift apart.
+    schema: "schema.sql"
+    queries: "query.sql"
+
+    gen:
+      go:
+        package: "db"
+        out: "internal/db"
+
+        # Emit an interface listing every method. This is what lets your
+        # service depend on db.Querier instead of *db.Queries, so tests can
+        # inject a fake without a database. Always turn this on.
+        emit_interface: true
+
+        # Pointers instead of sql.NullString for nullable columns. Nicer to
+        # work with; the trade-off is you lose the "was it explicitly NULL
+        # vs never set" distinction. Left OFF here so you can see what the
+        # raw sql.Null* types look like -- flip it and re-generate to compare.
+        emit_pointers_for_null_types: false
+
+        # Add `json:"..."` tags to the generated structs. Handy when the DB
+        # row is also your API response -- though for anything non-trivial
+        # you want a separate DTO, not your table struct on the wire.
+        emit_json_tags: true
+
+        # Struct field name for the id column: "Id" by default, "ID" with this.
+        # Matches Go naming conventions and golint.
+        rename:
+          id: "ID"
+
+        # Map SQL types to Go types yourself when the default is wrong.
+        # Classic example: storing timestamps as TEXT in sqlite but wanting
+        # time.Time in Go, or using uuid.UUID for a TEXT id column.
+        # overrides:
+        #   - db_type: "uuid"
+        #     go_type: "github.com/google/uuid.UUID"

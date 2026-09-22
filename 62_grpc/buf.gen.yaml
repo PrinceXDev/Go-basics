@@ -1,0 +1,18 @@
+# Which code generators to run. Each plugin is a separate binary installed
+# with `go install`; buf shells out to them.
+version: v2
+managed:
+  enabled: false
+plugins:
+  # protoc-gen-go: messages, enums, marshal/unmarshal.
+  - local: protoc-gen-go
+    out: gen
+    opt: paths=source_relative
+  # protoc-gen-go-grpc: the client stub and the server interface.
+  # Splitting these is deliberate -- you can generate messages for a project
+  # that has no services at all.
+  - local: protoc-gen-go-grpc
+    out: gen
+    opt: paths=source_relative
+inputs:
+  - directory: proto

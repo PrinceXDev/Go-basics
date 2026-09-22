@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package order.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "example.com/go-basics/63_microservices/gen/order/v1;orderv1";
+
+// The order service owns orders. It DEPENDS on the user service -- and that
+// dependency is the interesting part of this lesson: every failure mode you
+// have to handle (timeouts, retries, the circuit breaker, degraded mode)
+// exists because this arrow between two services can break.
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+}
+
+message Order {
+  string id = 1;
+  string user_id = 2;
+  repeated OrderLine lines = 3;
+  int64 total_cents = 4;
+  Status status = 5;
+  google.protobuf.Timestamp created_at = 6;
+
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_CONFIRMED = 2;
+    STATUS_REJECTED = 3;
+  }
+}
+
+message OrderLine {
+  string sku = 1;
+  int32 quantity = 2;
+  int64 unit_price_cents = 3;
+}
+
+message CreateOrderRequest {
+  string user_id = 1;
+  repeated OrderLine lines = 2;
+  // The caller supplies this. Retries reuse the same key, so a network blip
+  // cannot create two orders. Without it, "retry on Unavailable" is unsafe.
+  string idempotency_key = 3;
+}
+
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+message GetOrderRequest {
+  string id = 1;
+}
+
+message GetOrderResponse {
+  Order order = 1;
+}
+
+message ListOrdersRequest {
+  string user_id = 1;
+}
+
+message ListOrdersResponse {
+  repeated Order orders = 1;
+}

@@ -1,0 +1,133 @@
+// ===========================================================================
+// The CONTRACT. This file -- not the Go code -- is the source of truth for
+// what the inventory service can do. Both sides generate from it, so the
+// client physically cannot call a method that does not exist or send a field
+// of the wrong type. That is the entire pitch for gRPC over REST+JSON.
+//
+// Versioning lives in the PACKAGE PATH (inventory.v1). When you need a
+// breaking change you add inventory.v2 and run both for a while. You never
+// break v1 -- the whole company depends on it.
+// ===========================================================================
+
+syntax = "proto3";
+
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Where the generated Go lands and what its import path is.
+option go_package = "example.com/go-basics/62_grpc/gen/inventory/v1;inventoryv1";
+
+// ---------------------------------------------------------------------------
+// MESSAGES
+//
+// The numbers (= 1, = 2) are FIELD TAGS, and they are the wire format. The
+// field NAME is not transmitted -- only the tag. Therefore:
+//
+//   renaming a field  -> safe (tag unchanged)
+//   changing a tag    -> BREAKING
+//   reusing an old tag for a new meaning -> silently corrupts old clients
+//   deleting a field  -> mark the tag `reserved` so nobody reuses it
+//
+// Tags 1-15 encode in one byte, 16+ take two. Put your hot fields in 1-15.
+// ---------------------------------------------------------------------------
+
+message Product {
+  string id = 1;
+  string name = 2;
+  int64 price_cents = 3;   // money as integer cents, never a float
+  int32 stock = 4;
+  Category category = 5;
+  google.protobuf.Timestamp updated_at = 6;
+
+  // reserved 7, 8;                 // tags of deleted fields
+  // reserved "old_sku", "legacy";  // and their names
+}
+
+// proto3 enums MUST have a zero value, and it must be the "unspecified" case.
+// The zero value is what you get when the field is absent -- so if you make
+// CATEGORY_TOOLS = 0, every message that forgot to set a category silently
+// becomes a tool. Always burn 0 on UNSPECIFIED.
+enum Category {
+  CATEGORY_UNSPECIFIED = 0;
+  CATEGORY_TOYS = 1;
+  CATEGORY_TOOLS = 2;
+  CATEGORY_HOUSEHOLD = 3;
+}
+
+// ---------------------------------------------------------------------------
+// EVERY rpc gets its OWN request and response message, even when that means a
+// one-field wrapper. buf's STANDARD lint rules enforce this, and they are
+// right: the day you need to return a Product PLUS a cache header, you add a
+// field to GetProductResponse. If the rpc returned a bare Product, you would
+// have to change Product itself -- and break every other caller of it.
+// ---------------------------------------------------------------------------
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+message WatchStockRequest {
+  repeated string product_ids = 1;   // repeated == a Go slice
+  int32 max_events = 2;
+}
+
+message StockEvent {
+  string product_id = 1;
+  int32 stock = 2;
+  int32 delta = 3;
+  google.protobuf.Timestamp at = 4;
+}
+
+message WatchStockResponse {
+  StockEvent event = 1;
+}
+
+message BulkUpsertRequest {
+  Product product = 1;
+}
+
+message BulkUpsertResponse {
+  int32 created = 1;
+  int32 updated = 2;
+  int32 failed = 3;
+  repeated string errors = 4;
+}
+
+message ReserveRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+  string idempotency_key = 3;
+}
+
+message ReserveResponse {
+  string product_id = 1;
+  bool ok = 2;
+  int32 remaining = 3;
+  string reason = 4;
+}
+
+// ---------------------------------------------------------------------------
+// THE SERVICE -- all four gRPC call types in one place.
+// ---------------------------------------------------------------------------
+
+service InventoryService {
+  // 1. UNARY: one request, one response. 95% of real RPCs.
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+
+  // 2. SERVER STREAMING: one request, a stream of responses.
+  //    Live feeds, tailing logs, long result sets you do not want to buffer.
+  rpc WatchStock(WatchStockRequest) returns (stream WatchStockResponse);
+
+  // 3. CLIENT STREAMING: a stream of requests, one response.
+  //    Bulk upload, telemetry ingestion.
+  rpc BulkUpsert(stream BulkUpsertRequest) returns (BulkUpsertResponse);
+
+  // 4. BIDIRECTIONAL STREAMING: both sides stream independently over ONE
+  //    HTTP/2 connection. Chat, interactive sessions, request pipelining.
+  rpc Reserve(stream ReserveRequest) returns (stream ReserveResponse);
+}

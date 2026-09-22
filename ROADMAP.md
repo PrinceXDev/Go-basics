@@ -86,12 +86,54 @@ section builds on the last, and section D's capstone combines all of them.
 - [x] `30_closure` — closures over captured variables
 - [x] `31_demo_examples` — scratch/demo code
 
+## Phase 7 — Deep concurrency ✅ (done)
+
+- [x] `48_worker_pool` — bounded pool, jobs/results channels, channel ownership
+- [x] `49_go_scheduler` — GMP model, GOMAXPROCS, preemption
+- [x] `50_rwmutex` — `sync.RWMutex`, read-heavy workloads
+- [x] `51_sync_once` — lazy one-time init
+- [x] `52_sync_cond` — condition variables, when a channel is not enough
+- [x] `53_sync_pool` — object reuse, reducing GC pressure
+- [x] `54_atomic` — `sync/atomic`, lock-free counters, `atomic.Value`
+- [x] `55_deadlock` / `56_livelock` / `57_starvation` — the three failure modes
+- [x] `58_testing_concurrent_code` — `-race`, no sleeps, `t.Parallel()`
+
+## Phase 8 — Resume-gap closing (Go ecosystem + microservices)
+
+Everything claimed on the CV that the repo did not yet demonstrate.
+
+- [x] `59_testify` — `assert` vs `require`, `testify/mock` (matchers, call
+      counts), `suite` setup/teardown, fakes vs mocks
+- [x] `60_jwt_auth` — golang-jwt/v5, HS256 vs RS256, alg-pinning, bcrypt,
+      access + rotating refresh tokens, auth vs RBAC middleware, 401 vs 403
+- [x] `61_sqlc` — real codegen (sqlc.yaml → internal/db), nullable types,
+      joins, `sqlc.arg`/`narg`/`slice`, `:execrows`, transactions via
+      `WithTx`, testing against the generated `Querier` interface
+- [x] `62_grpc` — protobuf wire format, all four call types, interceptors
+      (unary + stream), status codes + error details, deadline propagation,
+      retry service config, buf lint/generate
+- [x] `63_microservices` — gateway (Gin) + order svc + user svc over gRPC:
+      request-ID propagation, deadline budgets, retry with jitter, circuit
+      breaker, degraded mode, idempotency keys, gRPC→HTTP code mapping,
+      errgroup fan-out, health checks, graceful drain. `cmd/demo` runs the
+      whole thing incl. a simulated outage
+- [x] `64_resilience` — errgroup (+SetLimit), `semaphore.Weighted`,
+      `rate.Limiter`, `singleflight`, and a goroutine leak proven live
+- [x] `65_asynq` — Redis-backed jobs on miniredis (no setup): priority
+      queues, retries/backoff, SkipRetry, dead-letter archive, dedupe by
+      TaskID, middleware, inspector, graceful shutdown
+- [x] `66_interview_prep` — 14 runnable "what does this print?" gotchas
+      (`main.go`) + a written Q&A bank (`README.md`)
+
 ---
 
 ## How to run each lesson
 
 ```bash
 go run ./NN_folder_name          # most lessons
+go test -v ./59_testify/         # 59 is a test package
+go run ./63_microservices/cmd/demo   # all three services + outage scenario
+go run ./66_interview_prep       # the gotcha quiz
 go test ./20_testing/            # 20, 43, 44 are test packages
 go test -bench=. -benchmem ./44_benchmarks_and_profiling/
 go run -race ./45_race_detector_and_linting
