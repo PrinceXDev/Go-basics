@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ratelimit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-ratelimit}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Learning shortcut: runs once, on first start of an empty volume. Only the
+      # .up file is mounted, since initdb would also run *.down.sql.
+      # A real project would use a migration tool (golang-migrate, goose).
+      - ./migrations/001_create_rate_limit_counters.up.sql:/docker-entrypoint-initdb.d/001.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ratelimit} -d ${POSTGRES_DB:-ratelimit}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

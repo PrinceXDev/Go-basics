@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "Fixed Window Rate Limiter",
+    "description": "Run 'Call /demo' with the Collection Runner for 15 iterations (0 delay). With RATE_LIMIT_API_KEY=10 the first 10 return 200 and the rest 429.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "apiKey", "value": "postman-key" }
+  ],
+  "item": [
+    {
+      "name": "Call /demo (run this 15 times in the Runner)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+        "url": { "raw": "{{baseUrl}}/demo", "host": ["{{baseUrl}}"], "path": ["demo"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "const code = pm.response.code;",
+          "pm.test('status is 200 or 429', () => pm.expect([200, 429]).to.include(code));",
+          "pm.test('limit headers present', () => {",
+          "  pm.expect(pm.response.headers.get('X-RateLimit-Limit')).to.not.be.null;",
+          "  pm.expect(pm.response.headers.get('X-RateLimit-Remaining')).to.not.be.null;",
+          "});",
+          "if (code === 429) {",
+          "  pm.test('429 has Retry-After', () => pm.expect(parseInt(pm.response.headers.get('Retry-After'))).to.be.above(0));",
+          "}"
+        ] }
+      }]
+    },
+    {
+      "name": "Different API key has its own budget",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "X-API-Key", "value": "another-customer-key" }],
+        "url": { "raw": "{{baseUrl}}/demo", "host": ["{{baseUrl}}"], "path": ["demo"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('first request of a fresh key is allowed', () => pm.response.to.have.status(200));"
+        ] }
+      }]
+    },
+    {
+      "name": "Missing API key -> 401",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/demo", "host": ["{{baseUrl}}"], "path": ["demo"] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "type": "text/javascript", "exec": [
+          "pm.test('401 without key', () => pm.response.to.have.status(401));"
+        ] }
+      }]
+    },
+    {
+      "name": "Health (not rate limited)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/healthz", "host": ["{{baseUrl}}"], "path": ["healthz"] }
+      }
+    }
+  ]
+}
