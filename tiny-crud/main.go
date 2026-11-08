@@ -198,8 +198,52 @@ func deleteUser(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
+	// go automatically converts the value to JSON
 	json.NewEncoder(w).Encode(v)
 }
+
+/*
+Approach: 1
+json.NewEncoder(w).Encode(assets)
+
+serializes Go data structures into JSON
+and writes the result directly to the HTTP response writer,
+allowing clients to consume the response
+
+assets := []Asset{
+    {ID: 1, Name: "Office Chair"},
+    {ID: 2, Name: "Office Table"},
+}
+
+======================================
+
+[
+  {
+    "id": 1,
+    "name": "Office Chair"
+  },
+  {
+    "id": 2,
+    "name": "Office Table"
+  }
+]
+
+****Approach 2: Marshal****
+
+data, err := json.Marshal(assets)
+if err != nil {
+    http.Error(w, "JSON encoding failed", http.StatusInternalServerError)
+    return
+}
+
+w.Write(data)
+
+Advantages:-
+- Converts Go data into a []byte.
+- You can inspect, modify or store the JSON before sending it.
+
+*/
 
 // ---------- wiring ----------
 
