@@ -54,6 +54,43 @@ func main() {
 	for _, s := range strategies {
 		run(ctx, repo, s, 50, wallet.Repeat(-20, 10), 10)
 	}
+
+	transfers(ctx, repo, think)
+}
+
+// transfers shows deadlocks: A->B and B->A at the same time, both rows locked.
+func transfers(ctx context.Context, repo *wallet.Repo, think time.Duration) {
+	const a, b = int64(101), int64(102)
+	moves := []wallet.Move{{From: a, To: b, Amount: 30}, {From: b, To: a, Amount: 10}}
+
+	fmt.Println("\nScenario 4: A(100) -> B(100) transfers 30 while B -> A transfers 10, at the same time")
+	fmt.Println("            correct: both succeed, A=80 B=120, total 200")
+	cases := []struct {
+		name string
+		t    *wallet.Transfer
+	}{
+		{"lock from-then-to, no retry", &wallet.Transfer{Pool: repo.Pool(), Think: think}},
+		{"lock from-then-to, retry", &wallet.Transfer{Pool: repo.Pool(), Think: think, MaxAttempts: 10}},
+		{"lock lowest id first", &wallet.Transfer{Pool: repo.Pool(), Think: think, OrderLocks: true}},
+	}
+	for _, c := range cases {
+		if err := repo.Reset(ctx, a, 100); err != nil {
+			log.Fatal(err)
+		}
+		if err := repo.Reset(ctx, b, 100); err != nil {
+			log.Fatal(err)
+		}
+		res := wallet.RunTransfers(ctx, c.t, moves)
+		ga, _ := repo.Get(ctx, a)
+		gb, _ := repo.Get(ctx, b)
+		verdict := "OK"
+		if res.Succeeded != 2 {
+			verdict = "ONE TRANSFER ABORTED"
+		}
+		fmt.Printf("  %-28s ok=%d deadlocked=%d retries=%d A=%d B=%d total=%d  %s (%v)\n",
+			c.name, res.Succeeded, res.Deadlocked, c.t.Retries(), ga.Balance, gb.Balance,
+			ga.Balance+gb.Balance, verdict, res.Elapsed.Round(time.Millisecond))
+	}
 }
 
 func run(ctx context.Context, repo *wallet.Repo, s wallet.Strategy, start int64, deltas []int64, want int64) {

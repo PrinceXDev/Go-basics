@@ -56,3 +56,12 @@ func Repeat(delta int64, n int) []int64 {
 	}
 	return out
 }
+
+// Repeat3 returns n identical transfers.
+func Repeat3(from, to, amount int64, n int) []Move {
+	out := make([]Move, n)
+	for i := range out {
+		out[i] = Move{From: from, To: to, Amount: amount}
+	}
+	return out
+}

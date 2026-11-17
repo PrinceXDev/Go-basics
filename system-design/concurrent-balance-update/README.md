@@ -131,9 +131,10 @@ them in a fixed order, e.g. by id, to avoid deadlocks.
 migrations/001_accounts.up.sql     table: id, balance (CHECK >= 0), version (own schema balance_demo)
 internal/wallet/wallet.go          Repo, errors, retry helpers
 internal/wallet/strategies.go      Naive (broken), Atomic, Pessimistic, Optimistic, Isolated
+internal/wallet/transfer.go        Transfer between two accounts, deadlock and lock ordering
 internal/wallet/runner.go          RunConcurrent: goroutines released together
 internal/wallet/wallet_test.go     tests (need PostgreSQL)
-cmd/demo/main.go                   runs 3 scenarios against every strategy
+cmd/demo/main.go                   runs 4 scenarios (3 against every strategy, plus transfers/deadlock)
 ```
 
 The `Think` field on each strategy sleeps between read and write to simulate
@@ -183,10 +184,17 @@ Scenario 2: balance 1000, 30 x +10 and 30 x -10
 Scenario 3: balance 50, ten x -20
   naive (broken)               ok=10  final=30     WRONG   (paid out 200 from 50)
   all other strategies         ok=2 insufficient=8 final=10  OK
+
+Scenario 4: A(100)->B(100) 30 while B->A 10 (transfers, deadlock)
+  lock from-then-to, no retry  ok=1 deadlocked=1  (one aborted by PostgreSQL, ~1s deadlock_timeout)
+  lock from-then-to, retry     ok=2 A=80 B=120 OK
+  lock lowest id first         ok=2 A=80 B=120 OK  (no deadlock, no retry)
 ```
 
 Naive in scenario 1 can end at 60 or 20 depending on who writes last.
 Atomic and `FOR UPDATE` always show `retries=0` because they wait instead of conflicting.
+
+See `INTERVIEW_QA.md` for how to explain all of this in an interview.
 
 ## 6. What the tests cover
 
@@ -202,3 +210,9 @@ Atomic and `FOR UPDATE` always show `retries=0` because they wait instead of con
 | `TestIsolationRetriesOnSerializationFailure` | 40001 is raised and retried to a correct result |
 | `TestIsolationWithoutRetryReportsConflict` | Without retry the loser fails; why retry is mandatory |
 | `TestUnknownAccount` | Missing account returns `ErrAccountNotFound` |
+| `TestOppositeTransfersDeadlock` | A->B and B->A deadlock; PostgreSQL aborts one (40P01) |
+| `TestOrderedLocksAvoidDeadlock` | Locking lowest id first: both succeed |
+| `TestDeadlockRetrySucceeds` | Retrying after 40P01 completes both |
+| `TestManyTransfersConserveMoney` | 40 concurrent transfers keep the total at 1000 |
+| `TestTransferInsufficientFunds` | Only 2 of 10 transfers go through |
+| `TestTransferSameAccount` | Same-account transfer rejected |

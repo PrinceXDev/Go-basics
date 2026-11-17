@@ -1,6 +1,8 @@
 services:
   postgres:
     image: postgres:16-alpine
+    # pg_stat_statements must be preloaded at server start; needs a restart to take effect.
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements", "-c", "pg_stat_statements.track=all"]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-wallet}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
