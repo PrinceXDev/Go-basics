@@ -1,0 +1,17 @@
+# Optional: PostgreSQL via Docker instead of `go run ./cmd/devpg`.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cbpay
+      POSTGRES_PASSWORD: cbpay
+      POSTGRES_DB: cbpay
+    ports: ["5433:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbpay"]
+      interval: 3s
+      retries: 20
+
+volumes:
+  pgdata:

@@ -1,0 +1,128 @@
+:root {
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --accent: #4f46e5;
+  --good: #059669;
+  --good-bg: #ecfdf5;
+  --warn: #b45309;
+  --warn-bg: #fffbeb;
+  --bad: #dc2626;
+  --bad-bg: #fef2f2;
+  --info: #2563eb;
+  --info-bg: #eff6ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0f17;
+    --card: #131a26;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #243044;
+    --accent: #818cf8;
+    --good: #34d399;
+    --good-bg: #052e22;
+    --warn: #fbbf24;
+    --warn-bg: #2d2006;
+    --bad: #f87171;
+    --bad-bg: #2f0f0f;
+    --info: #60a5fa;
+    --info-bg: #0c1a33;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+}
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+.sub { color: var(--muted); font-size: 13px; margin-top: 4px; max-width: 760px; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn, input {
+  background: var(--card); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 12px; font: inherit;
+}
+.btn { cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: progress; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 600; }
+input[type="number"] { width: 110px; }
+input[type="range"] { width: 140px; padding: 0; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.mt { margin-top: 16px; }
+
+.msg { border-radius: 10px; padding: 12px; margin-top: 12px; line-height: 1.45; }
+.msg b { display: block; margin-bottom: 2px; }
+.msg.good { background: var(--good-bg); color: var(--good); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.bad { background: var(--bad-bg); color: var(--bad); }
+.msg.info { background: var(--info-bg); color: var(--info); }
+.msg small { color: var(--muted); display: block; margin-top: 4px; }
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 480px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tile { border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+.tile .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .l { font-size: 12px; color: var(--muted); }
+
+.fsm { width: 100%; height: auto; display: block; }
+.fsm .node rect { fill: var(--card); stroke: var(--border); stroke-width: 2; }
+.fsm .node text { fill: var(--muted); font-weight: 600; font-size: 14px; }
+.fsm .node.active.closed rect { fill: var(--good-bg); stroke: var(--good); }
+.fsm .node.active.open rect { fill: var(--bad-bg); stroke: var(--bad); }
+.fsm .node.active.half rect { fill: var(--warn-bg); stroke: var(--warn); }
+.fsm .node.active text { fill: var(--text); }
+.fsm .edge { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+.fsm .elabel { fill: var(--muted); font-size: 11px; }
+.fsm marker path { fill: var(--muted); }
+
+.bar { position: relative; height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.bar > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 99px; transition: width .3s; }
+.bar > i { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--bad); }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; margin-top: 12px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+td.reason { white-space: normal; color: var(--muted); font-size: 12px; min-width: 160px; }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.chip.SUCCEEDED { background: var(--good-bg); color: var(--good); }
+.chip.QUEUED, .chip.PENDING { background: var(--warn-bg); color: var(--warn); }
+.chip.FAILED { background: var(--bad-bg); color: var(--bad); }
+.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+button.link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font: inherit; }
+
+.events { list-style: none; margin: 0; padding: 0; max-height: 520px; overflow-y: auto; }
+.events li { display: grid; grid-template-columns: 64px 72px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; line-height: 1.4; }
+.events time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.kind { font-weight: 600; text-transform: uppercase; font-size: 10.5px; padding-top: 1px; }
+.kind.breaker { color: var(--accent); }
+.kind.fallback, .kind.retry { color: var(--warn); }
+.kind.dlq { color: var(--bad); }
+.kind.worker, .kind.sync, .kind.reconcile { color: var(--good); }
+.kind.gateway, .kind.demo { color: var(--muted); }
+
+.steps { margin: 0; padding-left: 18px; line-height: 1.6; color: var(--muted); font-size: 13px; }
+.steps b { color: var(--text); }
+
+@media (max-width: 640px) {
+  .events li { grid-template-columns: 56px 1fr; }
+  .events li .kind { grid-column: 2; }
+  .events li span:last-child { grid-column: 1 / -1; }
+}

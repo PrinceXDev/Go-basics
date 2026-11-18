@@ -1,0 +1,104 @@
+# Dev stack. Kafka runs as a 3-broker KRaft cluster so RF=3 / min.insync.replicas=2
+# behave like production (kill one broker and writes still succeed).
+x-kafka: &kafka
+  image: apache/kafka:3.8.0
+  restart: unless-stopped
+  environment: &kafka-env
+    KAFKA_PROCESS_ROLES: broker,controller
+    KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-1:9093,2@kafka-2:9093,3@kafka-3:9093
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+    KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+    CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+    KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+    KAFKA_MIN_INSYNC_REPLICAS: 2
+    KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
+services:
+  kafka-1:
+    <<: *kafka
+    ports: ["9092:9092"]
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:19092,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:19092,EXTERNAL://localhost:9092
+  kafka-2:
+    <<: *kafka
+    ports: ["9093:9094"]
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 2
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:19092,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:19092,EXTERNAL://localhost:9093
+  kafka-3:
+    <<: *kafka
+    ports: ["9094:9095"]
+    environment:
+      <<: *kafka-env
+      KAFKA_NODE_ID: 3
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:19092,EXTERNAL://:9095
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-3:19092,EXTERNAL://localhost:9094
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: adclick
+      POSTGRES_PASSWORD: adclick
+      POSTGRES_DB: adclick
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adclick"]
+      interval: 3s
+      retries: 20
+
+  api:
+    build: { context: ., args: { CMD: api } }
+    restart: unless-stopped
+    depends_on: { postgres: { condition: service_healthy }, kafka-1: { condition: service_started } }
+    environment: &app-env
+      DATABASE_URL: postgres://adclick:adclick@postgres:5432/adclick?sslmode=disable
+      KAFKA_BROKERS: kafka-1:19092,kafka-2:19092,kafka-3:19092
+      REPLICATION_FACTOR: 3
+    ports: ["8080:8080"]
+
+  consumer:
+    build: { context: ., args: { CMD: consumer } }
+    restart: unless-stopped
+    depends_on: { postgres: { condition: service_healthy }, kafka-1: { condition: service_started } }
+    environment: *app-env
+    # Scale out:  docker compose up -d --scale consumer=3   (metrics port is not published for replicas)
+    expose: ["9101"]
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      API_URL: http://api:8080
+    ports: ["3000:3000"]
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes: ["./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["3001:3000"]
+    depends_on: [prometheus]
+
+volumes:
+  pgdata:

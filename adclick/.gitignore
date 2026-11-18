@@ -1,0 +1,8 @@
+.env
+.env.local
+.env.production
+web/node_modules/
+web/.next/
+web/next-env.d.ts
+web/*.tsbuildinfo
+*.test
