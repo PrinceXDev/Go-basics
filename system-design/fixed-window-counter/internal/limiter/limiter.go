@@ -9,6 +9,14 @@ import "time"
 // It uses Unix seconds instead of time.Truncate: Truncate counts from year 1,
 // so for odd window sizes its buckets would not line up with the SQL version
 // (floor(epoch / window) * window) that the store will use.
+
+/* The formula is window_start = now - (now % window_size). That rounds the current time down to the start of its bucket.
+
+Example with a 60-second window, where now = 12:00:43:
+
+now % 60 = 43
+window_start = now - 43 = 12:00:00
+*/
 func WindowStart(now time.Time, window time.Duration) time.Time {
 	size := int64(window / time.Second)
 	secs := now.Unix()
